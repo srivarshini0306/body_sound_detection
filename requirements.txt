@@ -1,9 +1,11 @@
 streamlit #ui framework 
-tensorflow #ml framework
-librosa #audio processing
-numpy #numeric processing
-pandas #data processing
+tensorflow=2.20.0 #ml framework
+librosa=0.11.0 #audio processing
+numpy=2.3.5 #numeric processing
+pandas=2.3.3 #data processing
 scikit-learn #machine learning
-matplotlib #data visualization
-soundfile #audio file processing
+matplotlib=3.10.8 #data visualization
+soundfile=0.13.1 #audio file processing
 huggingface-hub #model loading
+
+
