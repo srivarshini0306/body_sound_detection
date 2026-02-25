@@ -1,39 +1,66 @@
 import streamlit as st
 import numpy as np
+import requests
+import io
+import librosa
+import matplotlib.pyplot as plt
 
-from config import LUNG_CLASSES
-from audio.heart_preprocessing import load_heart_audio, extract_heart_mfcc
-from audio.lung_preprocessing import extract_lung_mfcc
-from model.heart_model_loader import load_heart_model
-from model.lung_model_loader import load_lung_model
-from ui.visualizations import plot_waveform
+from config import LUNG_CLASSES, HEART_CLASSES
 
-st.set_page_config(page_title="Cardio–Pulmonary AI", layout="centered")
-st.title("🫀🫁 Cardio–Pulmonary Disease Detection System")
+API_BASE_URL = "http://localhost:8000"
+
+st.set_page_config(page_title="Cardio–Pulmonary AI Dashboard", layout="centered")
+st.title("🫀🫁 Cardio–Pulmonary AI Dashboard")
+st.markdown("---")
 
 mode = st.sidebar.selectbox("Select Diagnosis Type", ["Heart Murmur", "Lung Disease"])
 uploaded_file = st.file_uploader("Upload Audio File (.wav / .mp3)", type=["wav", "mp3"])
 
-heart_model = load_heart_model()
-lung_model = load_lung_model()
+def plot_waveform(y, sr):
+    fig, ax = plt.subplots(figsize=(10, 4))
+    librosa.display.waveshow(y, sr=sr, ax=ax)
+    ax.set_title("Audio Waveform")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Amplitude")
+    return fig
 
 if uploaded_file is not None:
-
-    if mode == "Heart Murmur":
-        y, sr = load_heart_audio(uploaded_file)
+    st.audio(uploaded_file, format='audio/wav')
+    
+    # Load for visualization
+    try:
+        y, sr = librosa.load(uploaded_file, sr=None)
         st.pyplot(plot_waveform(y, sr))
+    except Exception as e:
+        st.warning(f"Could not load waveform visualization: {e}")
 
-        X = extract_heart_mfcc(y, sr)
-        preds = heart_model.predict(X)
-        st.success(f"Predicted Class: {np.argmax(preds)}")
-        st.write("Probabilities:", preds)
+    if st.button("Run Diagnosis"):
+        with st.spinner("Analyzing audio via API..."):
+            try:
+                # Reset file pointer for requests
+                uploaded_file.seek(0)
+                files = {"file": (uploaded_file.name, uploaded_file.read(), uploaded_file.type)}
+                
+                endpoint = "/predict/heart" if mode == "Heart Murmur" else "/predict/lung"
+                response = requests.post(f"{API_BASE_URL}{endpoint}", files=files)
+                response.raise_for_status()
+                result = response.json()
 
-    elif mode == "Lung Disease":
-        X = extract_lung_mfcc(uploaded_file)
-        preds = np.squeeze(lung_model.predict(X))
+                if mode == "Heart Murmur":
+                    st.success(f"Predicted Disease: {result['predicted_disease']}")
+                    st.info(f"Confidence: {result['confidence']*100:.2f}%")
+                    st.bar_chart(result['all_probabilities'])
+                else:
+                    st.success(f"Predicted Disease: {result['disease']}")
+                    st.info(f"Confidence: {result['confidence']*100:.2f}%")
+                    st.bar_chart(result['all_probabilities'])
+                    
+            except Exception as e:
+                st.error(f"Error communicating with API: {e}")
+                st.info("Make sure the FastAPI server is running with: uvicorn main:app --reload")
 
-        cls = np.argmax(preds)
-        st.success(f"Predicted Disease: {LUNG_CLASSES[cls]}")
-        st.info(f"Confidence: {preds[cls]*100:.2f}%")
-
-        st.bar_chart({LUNG_CLASSES[i]: preds[i] for i in range(len(LUNG_CLASSES))})
+st.sidebar.markdown("""
+---
+### System Status
+Backend: [API Link](http://localhost:8000)
+""")

@@ -7,5 +7,9 @@ scikit-learn #machine learning
 matplotlib #data visualization
 soundfile #audio file processing
 huggingface-hub #model loading
+fastapi #backend framework
+uvicorn #asgi server
+python-multipart #file upload support
+requests #api requests
 
 
