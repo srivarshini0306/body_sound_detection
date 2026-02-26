@@ -1,10 +1,18 @@
 services:
   backend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ${DOCKER_IMAGE_BACKEND}
     ports:
       - "8000:8000"
     environment:
       - HOST=0.0.0.0
     command: uvicorn main:app --host 0.0.0.0 --port 8000
+    restart: always
+
+  streamlit:
+    image: ${DOCKER_IMAGE_STREAMLIT}
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    command: streamlit run ui/app.py --server.port 8501 --server.address 0.0.0.0
+    restart: always
