@@ -11,5 +11,8 @@ fastapi #backend framework
 uvicorn #asgi server
 python-multipart #file upload support
 requests #api requests
+pytest #testing framework
+pytest-asyncio #async support for pytest
+httpx #async test client for fastapi
 
 

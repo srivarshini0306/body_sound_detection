@@ -10,15 +10,20 @@ variables:
 services:
   - docker:dind
 
+cache:
+  paths:
+    - frontend/node_modules/
+    - .pytest_cache/
+
 before_script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 build:
   stage: build
   script:
-    - docker build -t $DOCKER_IMAGE_BACKEND -f docker/Dockerfile .
+    - docker build --pull -t $DOCKER_IMAGE_BACKEND -f docker/Dockerfile .
     - docker push $DOCKER_IMAGE_BACKEND
-    - docker build -t $DOCKER_IMAGE_STREAMLIT -f docker/Dockerfile .
+    - docker build --pull -t $DOCKER_IMAGE_STREAMLIT -f docker/Dockerfile .
     - docker push $DOCKER_IMAGE_STREAMLIT
   only:
     - main
@@ -27,9 +32,9 @@ test_backend:
   stage: test
   image: python:3.10-slim
   script:
+    - apt-get update && apt-get install -y ffmpeg libsndfile1
     - pip install -r requirements.txt
-    # Add your test command here, e.g., pytest
-    - echo "Running backend tests..."
+    - pytest tests/
   only:
     - main
     - merge_requests
@@ -41,7 +46,6 @@ test_frontend:
     - cd frontend
     - npm install
     - npm run lint
-    - echo "Running frontend tests..."
   only:
     - main
     - merge_requests
@@ -50,9 +54,9 @@ deploy_staging:
   stage: deploy
   script:
     - echo "Deploying to staging..."
-    # - docker-compose -f docker/docker-compose.yml pull
-    # - docker-compose -f docker/docker-compose.yml up -d
+    # Add deployment logic here
   environment:
     name: staging
   only:
     - main
+  when: manual
