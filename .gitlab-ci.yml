@@ -73,10 +73,10 @@ deploy:
     - echo "DOCKER_IMAGE_STREAMLIT=$DOCKER_IMAGE_STREAMLIT" >> .env
     - scp docker/docker-compose.yml .env $AWS_USERNAME@$AWS_PUBLIC_IP:~/
     - ssh $AWS_USERNAME@$AWS_PUBLIC_IP "
-        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
-        docker pull $DOCKER_IMAGE_BACKEND &&
-        docker pull $DOCKER_IMAGE_STREAMLIT &&
-        docker-compose up -d
+        sudo docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+        sudo docker pull $DOCKER_IMAGE_BACKEND &&
+        sudo docker pull $DOCKER_IMAGE_STREAMLIT &&
+        sudo docker-compose up -d
       "
   environment:
     name: production
