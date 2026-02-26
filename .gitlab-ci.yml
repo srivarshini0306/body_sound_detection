@@ -10,11 +10,6 @@ variables:
 services:
   - docker:27-dind
 
-cache:
-  paths:
-    - frontend/node_modules/
-    - .pytest_cache/
-
 # removed global before_script to avoid errors in non-docker jobs
 
 build:
@@ -31,12 +26,11 @@ build:
 
 test_backend:
   stage: test
-  image: python:3.10-slim
+  image: $DOCKER_IMAGE_BACKEND
   script:
-    - apt-get update && apt-get install -y ffmpeg libsndfile1
-    - pip install -r requirements.txt
-    - pip install pytest pytest-asyncio httpx
-    - PYTHONPATH=. pytest tests/
+    # No need to install anything! The docker image already has tf, librosa, etc.
+    - cd /app
+    - pytest tests/
   only:
     - main
     - merge_requests
@@ -47,7 +41,7 @@ test_frontend:
   image: node:20-slim
   script:
     - cd frontend
-    - npm install
+    - npm install --prefer-offline --no-audit
     - npm run lint || echo "Linting failed but continuing..."
   only:
     - main
@@ -61,18 +55,10 @@ deploy:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    # Robust key loading: handles both content and filepath variables, and removes Windows line endings
-    - |
-      if [ -f "$AWS_PUBLIC_KEY" ]; then
-        cp "$AWS_PUBLIC_KEY" ~/.ssh/id_rsa
-      else
-        printf '%s\n' "$AWS_PUBLIC_KEY" > ~/.ssh/id_rsa
-      fi
+    - echo "$AWS_PUBLIC_KEY" > ~/.ssh/id_rsa
     - tr -d '\r' < ~/.ssh/id_rsa > ~/.ssh/id_rsa_clean
     - mv ~/.ssh/id_rsa_clean ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
-    # Debug info (will show first line, helps confirm if it's actually a private key)
-    - head -n 1 ~/.ssh/id_rsa
     - ssh-keyscan $AWS_PUBLIC_IP >> ~/.ssh/known_hosts
   script:
     - echo "DOCKER_IMAGE_BACKEND=$DOCKER_IMAGE_BACKEND" > .env
