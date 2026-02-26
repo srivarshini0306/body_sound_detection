@@ -15,12 +15,13 @@ cache:
     - frontend/node_modules/
     - .pytest_cache/
 
-before_script:
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+# removed global before_script to avoid errors in non-docker jobs
 
 build:
   stage: build
+  image: docker:24.0.5
   script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --pull -t $DOCKER_IMAGE_BACKEND -f docker/Dockerfile .
     - docker push $DOCKER_IMAGE_BACKEND
     - docker build --pull -t $DOCKER_IMAGE_STREAMLIT -f docker/Dockerfile .
