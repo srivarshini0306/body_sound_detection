@@ -61,7 +61,7 @@ deploy:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - echo "$AWS_PUBLIC_KEY" > ~/.ssh/id_rsa
+    - printf "%s\n" "$AWS_PUBLIC_KEY" > ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan $AWS_PUBLIC_IP >> ~/.ssh/known_hosts
   script:
