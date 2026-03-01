@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+bvenv/
+.env
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Git
+.git/
+.gitignore
+
+# Data and logs
+logs/
+temp_*.wav
+temp_*.mp3
+
+# Project artifacts
+.gemini/
+.agents/
+brain/
+implementation_plan.md
+walkthrough.md
+task.md
