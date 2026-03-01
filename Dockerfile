@@ -26,6 +26,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download models from Hugging Face to bake into the image
+RUN python3 -c "from huggingface_hub import hf_hub_download; \
+    hf_hub_download(repo_id='srivarshini0306/body_sound_detection', filename='lstm_model.h5'); \
+    hf_hub_download(repo_id='srivarshini0306/body_sound_detection', filename='lung_model.h5')"
+
 # Copy the rest of the application
 COPY . .
 
