@@ -4,9 +4,13 @@ on:
   push:
     branches: [main]
 
+
 jobs:
   Continuous-Integration:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
@@ -17,11 +21,11 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
@@ -37,6 +41,9 @@ jobs:
   Continuous-Deployment:
     needs: Continuous-Integration
     runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,27 +53,27 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Pull latest image
-        run: |
-          docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
-
-      - name: Stop and remove existing container
-        run: |
-          docker stop cardio-pulm || true
-          docker rm cardio-pulm || true
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Run Docker Image to serve users
         run: |
-          docker run -d --name cardio-pulm \
-            -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-            -e AWS_DEFAULT_REGION="${{ secrets.AWS_REGION || 'ap-south-1' }}" \
-            -p 8000:8000 \
-            -p 8501:8501 \
-            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
+         echo "Checking disk space before cleanup..."
+         df -h
+         docker system prune -f
+         docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
+         docker stop medicalbot || true
+         docker rm medicalbot || true
+         docker run -d -p 8080:8080 --name medicalbot \
+           -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+           -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+           -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
+           -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" \
+           -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+           ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
+         docker image prune -f
+         echo "Checking disk space after deployment..."
+         df -h
