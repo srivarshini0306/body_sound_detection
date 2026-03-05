@@ -18,7 +18,6 @@ frontend/dist/
 
 # Docker
 Dockerfile
-start.sh
 
 # Others
 .DS_Store
