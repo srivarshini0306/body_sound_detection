@@ -8,9 +8,6 @@ on:
 jobs:
   Continuous-Integration:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - name: Checkout
@@ -25,7 +22,7 @@ jobs:
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v4
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
@@ -36,14 +33,11 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .  
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
   Continuous-Deployment:
     needs: Continuous-Integration
     runs-on: self-hosted
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,19 +55,4 @@ jobs:
 
       - name: Run Docker Image to serve users
         run: |
-         echo "Checking disk space before cleanup..."
-         df -h
-         docker system prune -f
-         docker pull ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
-         docker stop medicalbot || true
-         docker rm medicalbot || true
-         docker run -d -p 8080:8080 --name medicalbot \
-           -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-           -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-           -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
-           -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" \
-           -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
-           ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPO }}:latest
-         docker image prune -f
-         echo "Checking disk space after deployment..."
-         df -h
+         docker run -d -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" -e PINECONE_API_KEY="${{ secrets.PINECONE_API_KEY }}" -e GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" -p 8080:8080 "${{ steps.login-ecr.outputs.registry }}"/"${{ secrets.ECR_REPO }}":latest

@@ -72,4 +72,4 @@ The project includes a GitLab CI/CD pipeline configured in `.gitlab-ci.yml`. It 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
-537615204331.dkr.ecr.ap-south-1.amazonaws.com/cancerdetection
+537615204331.dkr.ecr.ap-south-1.amazonaws.com/detect
